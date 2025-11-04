@@ -2,7 +2,7 @@ name: Deploy to Amazon ECS
 
 on:
   push:
-    branches: [ "main" ]   # 다른 브랜치에서 동작시키고 싶다면 변경 (예: "master")
+    branches: [ "main" ]
 
 jobs:
   deploy:
@@ -17,16 +17,21 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }} 
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }} 
-        aws-region: ap-northeast-2   
+        aws-region: ap-northeast-2 
 
+    # --- 👇 이 스텝이 수정되었습니다 👇 ---
     - name: Login to Amazon ECR Public
-      run: |
-        aws ecr-public get-login-password --region us-east-1 | \     
-        docker login --username AWS --password-stdin public.ecr.aws/t1j0n5t4/ecs-demo-repo
+      run: aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+    # --- 👆 이 스텝이 수정되었습니다 👆 ---
+    
+    # 참고: us-east-1은 ECR Public의 인증 리전입니다. ap-northeast-2와 다르더라도 그대로 사용해야 합니다.
 
     - name: Build Docker image
       run: |
+        # 이미지 빌드
         docker build -t ecs-demo-repo:latest .
+        
+        # 이미지 태그 (네임스페이스 포함)
         docker tag ecs-demo-repo:latest public.ecr.aws/t1j0n5t4/ecs-demo-repo:latest
 
     - name: Push Docker image to ECR
@@ -36,8 +41,7 @@ jobs:
     - name: Deploy to ECS (Fargate)
       run: |
         aws ecs update-service \
-          --cluster ecs-demo-cluster \     # 본인 ECS 클러스터 이름으로 변경
-          --service ecs-demo-service \     # 본인 ECS 서비스 이름으로 변경
+          --cluster ecs-demo-cluster \
+          --service ecs-demo-service \
           --force-new-deployment \
           --region ap-northeast-2
-
